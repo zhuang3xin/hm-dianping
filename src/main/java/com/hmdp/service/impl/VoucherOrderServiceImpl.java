@@ -12,12 +12,15 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -34,9 +37,10 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private final ISeckillVoucherService seckillVoucherService;
     private final RedisIdWorker redisIdWorker;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedissonClient redissonClient;
 
     @Override
-    public Result seckillVoucher(Long voucherId) {
+    public Result seckillVoucher(Long voucherId) throws InterruptedException {
         // 1.去数据库查询秒杀卷
         SeckillVoucher seckillVoucher = seckillVoucherService.getById(voucherId);
         LocalDateTime now = LocalDateTime.now();
@@ -55,9 +59,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
 
         Long userId = UserHolder.getUser().getId();
-        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
-        // 4.获取锁
-        boolean isLock = lock.tryLock(1200L);
+        // 4.1.获取锁对象
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
+//        SimpleRedisLock lock = new SimpleRedisLock("order:" + userId, stringRedisTemplate);
+        // 4.2.尝试获取锁
+        boolean isLock = lock.tryLock(1, 1200, TimeUnit.SECONDS);
         // 5.判断是否获取到锁
         // 5.1.加锁失败
         if (!isLock) {
@@ -69,7 +75,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
             return proxy.createVoucherOrder(voucherId);
         } finally {
-            lock.unLock();
+            lock.unlock();
         }
     }
 
