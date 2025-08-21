@@ -16,5 +16,5 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
 
     Result seckillVoucher(Long voucherId) throws InterruptedException;
 
-    Result createVoucherOrder(VoucherOrder voucherOrder);
+    void createVoucherOrder(VoucherOrder voucherOrder) throws InterruptedException;
 }
