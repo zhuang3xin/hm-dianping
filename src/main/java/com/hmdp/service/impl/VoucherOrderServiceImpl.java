@@ -44,6 +44,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private final StringRedisTemplate stringRedisTemplate;
     private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
 
+    static {
+        SECKILL_SCRIPT = new DefaultRedisScript<>();
+        SECKILL_SCRIPT.setLocation(new ClassPathResource("seckill.lua"));
+        SECKILL_SCRIPT.setResultType(Long.class);
+    }
+
     private static final ExecutorService SECKILL_ORDER_EXECUTOR = Executors.newSingleThreadExecutor();
 
     //在类初始化之后执行，因为当这个类初始化好了之后，随时都是有可能要执行的
@@ -128,12 +134,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
                 }
             }
         }
-    }
-
-    static {
-        SECKILL_SCRIPT = new DefaultRedisScript<>();
-        SECKILL_SCRIPT.setLocation(new ClassPathResource("seckill.lua"));
-        SECKILL_SCRIPT.setResultType(Long.class);
     }
 
     @Override
