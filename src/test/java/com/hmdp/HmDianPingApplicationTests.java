@@ -77,4 +77,28 @@ class HmDianPingApplicationTests {
             stringRedisTemplate.opsForGeo().add(key, geoLocations);
         }
     }
+
+    @Test
+    void testHyperLogLog() {
+        // 准备数组，存储用户数据
+        String[] users = new String[1000];
+
+        // 数组角标
+        int index = 0;
+
+        // 存储
+        for (int i = 1; i <= 1000000; i++) {
+            users[index++] = "user_" + i;
+
+            // 每一千条数据上传一次
+            if (i % 1000 == 0) {
+                index = 0;
+                stringRedisTemplate.opsForHyperLogLog().add("hll1", users);
+            }
+        }
+
+        // 统计数量
+        Long size = stringRedisTemplate.opsForHyperLogLog().size("hll1");
+        System.out.println("size = " + size);
+    }
 }
